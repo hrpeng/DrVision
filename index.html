@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>tracking.js - face with camera</title>
+
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+  <!-- jQuery library -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+  <!-- Latest compiled JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+  <script src="./tracking-min.js"></script>
+  <script src="./face-min.js"></script>
+  <script src="./stats.min.js"></script>
+
+  <style>
+  #stats {
+    display: none;
+  }
+
+  video, canvas {
+    position: absolute;
+  }
+
+  div.left {
+    background-color: #2C2C2C;
+    height: 100%;
+    width: 320px;
+  } div.left-bottom {
+    color: white;
+  } div.right {
+    position: absolute;
+    left: 320px;
+    width: 70%;
+    text-align: center;
+    top: 20px;
+  } div.letter {
+    position: absolute;
+    top: 240px;
+  } div.btn-success {
+    font-size: 30px;
+  }
+
+  #wrap { width: 600px; height: 320px; padding: 0; overflow: hidden; margin-left: 200px;}
+  #frame { width: 600px; height: 320px; border: 1px solid black; }
+    #frame {
+        -webkit-transform: scale(1);
+        -webkit-transform-origin: 0 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="left">
+    <video id="video" width="320" height="240" preload autoplay loop muted></video>
+    <canvas id="canvas" width="320" height="240"></canvas>
+    <div class="letter">
+    </div>
+  </div>
+  <div class="right">
+    <img src="images/left.png" id="image_1" value="1"/>
+      <img src="images/up.png" id="image_2" value="2"/>
+      <img src="images/right.png" id="image_3" value="3"/>
+      <img src="images/down.png" id="image_4" value="4"/>
+      <br/>
+      <button onclick="wrong()" class="btn-success" style="font-size: 50px; margin-top:30px; width:500px;">I can't see the E!</button>
+      <h2 id="info" style="font-size: 50px;">Loading...</h2>
+
+      <div id="wrap"><iframe src="https://www.w3schools.com" id="frame"></iframe></div>
+  </div>
+
+  <script>
+    var image_size = 150;
+    var random_number;
+    var wrong_counter = 0;
+    var original_size;
+    var scale_size = 1;
+
+    window.onload = function() {
+      for (var i = 1; i < 5; i++) {
+        var hide = document.getElementById("image_" + i);
+        hide.style.display = "none";
+      } 
+
+      random_number = Math.floor(Math.random() * 4) + 1;
+      var image = document.getElementById("image_" + random_number);
+      image.height = image_size;
+      image.width = image_size;
+      image.style.display = "";
+
+      var video = document.getElementById('video');
+      var canvas = document.getElementById('canvas');
+      var context = canvas.getContext('2d');
+
+      var tracker = new tracking.ObjectTracker('face');
+      tracker.setInitialScale(4);
+      tracker.setStepSize(2);
+      tracker.setEdgesDensity(0.1);
+
+      tracking.track('#video', tracker, { camera: true });
+
+      tracker.on('track', function(event) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        event.data.forEach(function(rect) {
+          context.strokeStyle = '#a64ceb';
+          context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+          context.font = '11px Helvetica';
+          context.fillStyle = "#fff";
+          context.fillText('x: ' + rect.x + 'px', rect.x + rect.width + 5, rect.y + 11);
+          context.fillText('y: ' + rect.y + 'px', rect.x + rect.width + 5, rect.y + 22);
+
+          var info = document.getElementById('info');
+          if (rect.width < 101) {
+            info.innerHTML = "Please move closer!";
+          } else if (rect.width > 120) {
+            info.innerHTML = "Please move further!";
+          } else {
+            info.innerHTML = "Perfect! You're at the right position!"
+          }
+
+          var frame = document.getElementById('frame');
+          var area = rect.x * rect.y;
+          if (rect.width > 140) {
+            scale_size = 1;
+          } else if (rect.width > 120) {
+            scale_size = 2;
+          } else if (rect.width > 101) {
+            scale_size = 3;
+          } 
+          frame.style["-webkit-transform"] = "scale(" + scale_size + ")";
+        });
+      });
+
+      var gui = new dat.GUI();
+      gui.add(tracker, 'edgesDensity', 0.1, 0.5).step(0.01);
+      gui.add(tracker, 'initialScale', 1.0, 10.0).step(0.1);
+      gui.add(tracker, 'stepSize', 1, 5).step(0.1);
+    };
+
+    var Key = {
+      LEFT:   37,
+      UP:     38,
+      RIGHT:  39,
+      DOWN:   40
+    };
+
+    /**
+     * old IE: attachEvent
+     * Firefox, Chrome, or modern browsers: addEventListener
+     */
+    function _addEventListener(evt, element, fn) {
+      if (window.addEventListener) {
+        element.addEventListener(evt, fn, false);
+      }
+      else {
+        element.attachEvent('on'+evt, fn);
+      }
+    }
+
+    function handleKeyboardEvent(evt) {
+      if (!evt) {evt = window.event;} // for old IE compatible
+      var keycode = evt.keyCode || evt.which; // also for cross-browser compatible
+
+      switch (keycode) {
+        case Key.LEFT:
+          examine(keycode, (random_number + 36));
+          break;
+        case Key.UP:
+          examine(keycode, (random_number + 36));
+          break;
+        case Key.RIGHT:
+          examine(keycode, (random_number + 36));
+          break;
+        case Key.DOWN:
+          examine(keycode, (random_number + 36));
+          break;
+        default:
+          break;
+      }
+    }
+
+    function right() {
+      image_size = image_size*0.75;
+      random_image(image_size);
+      wrong_counter = 0;
+    }
+
+    function wrong() {
+      if (wrong_counter > 0) {
+        alert("GO SEE A DOCTOR! YOU'RE EYESIGHT IS 20/" + Math.ceil(image_size*4/3));
+      } else {
+        image_size = image_size*(1/0.75);
+        random_image(image_size);
+        wrong_counter++;
+      }
+    }
+
+    function examine(keycode, keynumber) {
+      if (keycode == keynumber) {
+        right()
+      } else {
+        wrong()
+      }
+    }
+
+    function random_image(image_size) {
+      for (var i = 1; i < 5; i++) {
+        var hide = document.getElementById("image_" + i);
+        hide.style.display = "none";
+      } 
+
+      random_number = Math.floor(Math.random() * 4) + 1;
+      var image = document.getElementById("image_" + random_number);
+      image.height = image_size;
+      image.width = image_size;
+      image.style.display = "";
+    }
+
+    _addEventListener('keydown', document, handleKeyboardEvent);
+  </script>
+
+</body>
+</html>
